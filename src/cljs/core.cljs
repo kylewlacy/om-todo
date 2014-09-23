@@ -1,40 +1,33 @@
 (ns todo.core
   (:require [om.core       :as om :include-macros true]
             [sablono.core  :as sablono :refer-macros [html]]
-            [domina        :as d]
-            [domina.events :as e]))
+            [domina        :as d]))
 
 (enable-console-print!)
 
 (defn new-item []
   {:title "New item"
    :completed? false
-   :editing? false})
+   :focus? false})
 
-(defn editing-item [item]
-  (assoc item :editing? true))
 
-(defn stop-editing-item [item]
-  (assoc item :editing? false))
+(defn focus [item]
+  (assoc item :focus? true))
 
-(defn stop-editing-all-items [items]
-  (map stop-editing-item items))
+(defn unfocus! [item]
+  (om/transact! item #(assoc % :focus? false)))
 
-(defn start-editing-item! [item]
-  (om/transact! item editing-item))
-
-(defn stop-editing-item! [item]
-  (om/transact! item stop-editing-item))
-
-(defn stop-editing-all-items! [items]
-  (om/transact! items stop-editing-all-items))
+(defn finalize-item! [item]
+  (let [current-title (:title @item)
+        new-title     (if (empty? current-title) "New item" current-title)]
+    (update-title! item new-title)
+  (unfocus! item)))
 
 (defn add-item! [items item]
   (om/transact! items #(vec (concat % [item]))))
 
 (defn add-new-item! [items]
-  (stop-editing-all-items! items)
-  (add-item! items (editing-item (new-item))))
+  (add-item! items (focus (new-item))))
 
 (defn update-completed! [item completed-now?]
   (om/transact! item #(assoc % :completed? completed-now?)))
@@ -47,13 +40,11 @@
     [:input {:type      "checkbox"
              :checked   (if (:completed? item) "checked" "")
              :on-change #(update-completed! item (-> % .-target .-checked))}]
-    (if (:editing? item)
-      [:input {:type       "text"
-               :value      (:title item)
-               :on-change  #(update-title! item (-> % .-target .-value))
-               :on-blur    #(stop-editing-item! item)
-               :auto-focus true}]
-      [:span {:on-click #(start-editing-item! item)} (:title item)])])
+   [:input {:type       "text"
+            :value      (:title item)
+            :on-change  #(update-title! item (-> % .-target .-value))
+            :on-blur    #(finalize-item! item)
+            :auto-focus (:focus? item)}]])
 
 (defn list-items [items]
   [:ol#todo-list (map list-item items)])
