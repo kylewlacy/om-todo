@@ -34,7 +34,7 @@
 
 (defn add-new-item! [items]
   (stop-editing-all-items! items)
-  (add-item! items (new-item)))
+  (add-item! items (editing-item (new-item))))
 
 (defn update-completed! [item completed-now?]
   (om/transact! item #(assoc % :completed? completed-now?)))
