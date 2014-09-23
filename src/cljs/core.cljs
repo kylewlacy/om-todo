@@ -39,7 +39,8 @@
   [:li
     [:input {:type      "checkbox"
              :checked   (if (:completed? item) "checked" "")
-             :on-change #(update-completed! item (-> % .-target .-checked))}]
+             :on-change #(update-completed! item (-> % .-target .-checked))
+             :tab-index -1}]
    [:input {:type       "text"
             :value      (:title item)
             :on-change  #(update-title! item (-> % .-target .-value))
