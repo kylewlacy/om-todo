@@ -46,8 +46,14 @@
   [:li
     [:input {:type      "checkbox"
              :checked   (if (:completed? item) "checked" "")
-    [:span (:title item)]])
              :on-change #(update-completed! item (-> % .-target .-checked))}]
+    (if (:editing? item)
+      [:input {:type       "text"
+               :value      (:title item)
+               :on-change  #(update-title! item (-> % .-target .-value))
+               :on-blur    #(stop-editing-item! item)
+               :auto-focus true}]
+      [:span {:on-click #(start-editing-item! item)} (:title item)])])
 
 (defn list-items [items]
   [:ol#todo-list (map list-item items)])
