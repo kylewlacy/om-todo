@@ -6,6 +6,13 @@
 
 (enable-console-print!)
 
+(defn new-item []
+  {:title "New item"
+   :completed? false})
+
+(defn add-item [items]
+  (let [item (new-item)]
+    (om/transact! items #(conj % item))))
 
 
 (defn list-item [item]
@@ -22,11 +29,12 @@
     (html
       [:section#to-do
         [:h1 "To-Do List"]
-        (list-items (:items app))])))
+        (list-items (:items app))
+        [:button {:on-click (partial add-item (:items app))} "Add item"]])))
 
 
 
-(def app-state (atom {:items [{:title "Hello wrold!"}]}))
+(def app-state (atom {:items [(new-item)]}))
 
 (defn setup []
   (om/root todo-list app-state {:target (d/by-id "app")}))
