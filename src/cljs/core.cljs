@@ -8,7 +8,26 @@
 
 (defn new-item []
   {:title "New item"
-   :completed? false})
+   :completed? false
+   :editing? false})
+
+(defn editing-item [item]
+  (assoc item :editing? true))
+
+(defn stop-editing-item [item]
+  (assoc item :editing? false))
+
+(defn stop-editing-all-items [items]
+  (map stop-editing-item items))
+
+(defn start-editing-item! [item]
+  (om/transact! item editing-item))
+
+(defn stop-editing-item! [item]
+  (om/transact! item stop-editing-item))
+
+(defn stop-editing-all-items! [items]
+  (om/transact! items stop-editing-all-items))
 
 (defn add-item! [items item]
   (om/transact! items #(vec (concat % [item]))))
