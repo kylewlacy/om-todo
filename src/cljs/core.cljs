@@ -10,9 +10,12 @@
   {:title "New item"
    :completed? false})
 
-(defn add-item [items]
-  (let [item (new-item)]
-    (om/transact! items #(conj % item))))
+(defn add-item! [items item]
+  (om/transact! items #(vec (concat % [item]))))
+
+(defn add-new-item! [items]
+  (stop-editing-all-items! items)
+  (add-item! items (new-item)))
 
 (defn update-completed! [item completed-now?]
   (om/transact! item #(assoc % :completed? completed-now?)))
@@ -36,7 +39,9 @@
       [:section#to-do
         [:h1 "To-Do List"]
         (list-items (:items app))
-        [:button {:on-click (partial add-item (:items app))} "Add item"]])))
+        [:button
+          {:on-click (partial add-new-item! (:items app))}
+          "Add item"]])))
 
 
 
