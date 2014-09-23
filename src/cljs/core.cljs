@@ -14,16 +14,18 @@
   (let [item (new-item)]
     (om/transact! items #(conj % item))))
 
-(defn toggle-item! [item]
-  (let [already-completed (:completed? @item)]
-    (om/transact! item #(assoc % :completed? (not already-completed)))))
+(defn update-completed! [item completed-now?]
+  (om/transact! item #(assoc % :completed? completed-now?)))
+
+(defn update-title! [item new-title]
+  (om/transact! item #(assoc % :title new-title)))
 
 (defn list-item [item]
   [:li
     [:input {:type      "checkbox"
              :checked   (if (:completed? item) "checked" "")
-             :on-change (partial toggle-item! item)}]
     [:span (:title item)]])
+             :on-change #(update-completed! item (-> % .-target .-checked))}]
 
 (defn list-items [items]
   [:ol#todo-list (map list-item items)])
