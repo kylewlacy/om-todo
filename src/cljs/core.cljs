@@ -17,11 +17,7 @@
 (defn unfocus! [item]
   (om/transact! item #(assoc % :focus? false)))
 
-(defn finalize-item! [item]
-  (let [current-title (:title @item)
-        new-title     (if (empty? current-title) "New item" current-title)]
-    (update-title! item new-title)
-  (unfocus! item)))
+
 
 (defn add-item! [items item]
   (om/transact! items #(vec (concat % [item]))))
@@ -29,26 +25,41 @@
 (defn add-new-item! [items]
   (add-item! items (focus (new-item))))
 
-(defn update-completed! [item completed-now?]
+
+
+(defn update-item-completion! [item completed-now?]
   (om/transact! item #(assoc % :completed? completed-now?)))
 
-(defn update-title! [item new-title]
+(defn update-item-title! [item new-title]
   (om/transact! item #(assoc % :title new-title)))
+
+(defn finalize-item! [item]
+  (let [current-title (:title @item)
+        new-title     (if (empty? current-title) "New item" current-title)]
+    (update-item-title! item new-title)
+  (unfocus! item)))
+
+
 
 (defn list-item [item]
   [:li
     [:input {:type      "checkbox"
-             :checked   (if (:completed? item) "checked" "")
-             :on-change #(update-completed! item (-> % .-target .-checked))
+             :checked   (:completed? item)
+             :on-change #(update-item-completion! item
+                                                  (-> % .-target .-checked))
              :tab-index -1}]
    [:input {:type       "text"
             :value      (:title item)
-            :on-change  #(update-title! item (-> % .-target .-value))
+            :on-change  #(update-item-title! item (-> % .-target .-value))
             :on-blur    #(finalize-item! item)
             :auto-focus (:focus? item)}]])
 
 (defn list-items [items]
   [:ol#todo-list (map list-item items)])
+
+(defn add-item-button [items]
+  [:button {:on-click (partial add-new-item! items)}
+    "Add item"])
 
 (defn todo-list [app owner]
   (om/component
@@ -56,9 +67,7 @@
       [:section#to-do
         [:h1 "To-Do List"]
         (list-items (:items app))
-        [:button
-          {:on-click (partial add-new-item! (:items app))}
-          "Add item"]])))
+        (add-item-button (:items app))])))
 
 
 
