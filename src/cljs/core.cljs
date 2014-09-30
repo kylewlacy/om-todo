@@ -45,35 +45,43 @@
 
 
 (defn new-item []
-  {:title "New item"
-   :completed? false})
+  {:title      ""
+   :completed? false
+   :new?       true})
 
-
+(defn mark-as-old [item]
+  (assoc item :new? false))
 
 (defn add-item! [items item]
-  (om/transact! items #(vec (concat % [item]))))
+  (om/transact! items #(-> (map mark-as-old %)
+                           (concat [item])
+                           vec)))
 
 (defn add-new-item! [items]
   (add-item! items (new-item)))
 
 (defn update-item-completion! [item completed-now?]
-  (om/transact! item #(assoc % :completed? completed-now?)))
+  (om/transact! item #(-> % mark-as-old (assoc :completed? completed-now?))))
 
 (defn update-item-title! [item new-title]
-  (om/transact! item #(assoc % :title new-title)))
+  (if (:new? @item)
+    (add-item! (parent-cursor item) (new-item)))
+  (om/transact! item #(-> % mark-as-old (assoc :title new-title))))
 
 (defn finalize-item! [item]
-  (if (empty? (:title @item))
+  (if (and (empty? (:title @item)) (not (:new? @item)))
     (remove-item! item)))
 
 
 
 (defn list-item [item]
-  [:li
+  [:li {:class [(if (:new? item) "new")]}
     [:input {:type      "checkbox"
+             :disabled  (if (:new? item) "disabled" "")
              :checked   (:completed? item)
-             :on-change #(update-item-completion! item
-                                                  (-> % .-target .-checked))
+             :on-change #(update-item-completion! item (-> %
+                                                           .-target
+                                                           .-checked))
              :tab-index -1}]
    [:input {:type       "text"
             :value      (:title item)
@@ -83,17 +91,12 @@
 (defn list-items [items]
   [:ol#todo-list (map list-item items)])
 
-(defn add-item-button [items]
-  [:button {:on-click (partial add-new-item! items)}
-    "Add item"])
-
 (defn todo-list [app owner]
   (om/component
     (html
       [:section#to-do
         [:h1 "To-Do List"]
-        (list-items (:items app))
-        (add-item-button (:items app))])))
+        (list-items (:items app))])))
 
 
 
