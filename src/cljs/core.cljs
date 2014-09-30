@@ -46,15 +46,7 @@
 
 (defn new-item []
   {:title "New item"
-   :completed? false
-   :focus? false})
-
-
-(defn focus [item]
-  (assoc item :focus? true))
-
-(defn unfocus! [item]
-  (om/transact! item #(assoc % :focus? false)))
+   :completed? false})
 
 
 
@@ -62,9 +54,7 @@
   (om/transact! items #(vec (concat % [item]))))
 
 (defn add-new-item! [items]
-  (add-item! items (focus (new-item))))
-
-
+  (add-item! items (new-item)))
 
 (defn update-item-completion! [item completed-now?]
   (om/transact! item #(assoc % :completed? completed-now?)))
@@ -74,8 +64,7 @@
 
 (defn finalize-item! [item]
   (if (empty? (:title @item))
-    (remove-item! item)
-    (unfocus! item)))
+    (remove-item! item)))
 
 
 
@@ -89,8 +78,7 @@
    [:input {:type       "text"
             :value      (:title item)
             :on-change  #(update-item-title! item (-> % .-target .-value))
-            :on-blur    #(finalize-item! item)
-            :auto-focus (:focus? item)}]])
+            :on-blur    #(finalize-item! item)}]])
 
 (defn list-items [items]
   [:ol#todo-list (map list-item items)])
