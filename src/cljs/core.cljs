@@ -5,6 +5,45 @@
 
 (enable-console-print!)
 
+; http://stackoverflow.com/a/18319708/1311454
+(defn remove-nth
+  "Remove the `n`th element in `coll`"
+  [coll n]
+  (vec (concat (subvec coll 0 n) (subvec coll (inc n)))))
+
+(defn remove-key
+  "Remove `key` from `coll`, where `key` is either a map key or an array index"
+  [coll key]
+  (cond
+    (and (coll? coll) (not (map? coll)) (number? key))
+      (remove-nth coll key)
+    :else
+      (dissoc coll key)))
+
+(defn parent-cursor
+  "Return the cursor one level up in the path of `child-cursor`"
+  [child-cursor]
+  (let [new-path (vec (butlast (om/path child-cursor)))
+        state    (om/state child-cursor)
+        val      (get-in @state new-path)
+        cursor   (om/-derive child-cursor val state new-path)]
+    cursor))
+
+(defn key-in-parent
+  "Return the key to get from a parent cursor to `child-cursor`, such that:
+   (get (parent-cursor child-cursor) (key-in-parent child-cursor))
+     => child-cursor"
+  [child-cursor]
+  (last (om/path child-cursor)))
+
+(defn remove-item! [cursor]
+  "Remove `cursor` from its parent"
+  (let [parent (parent-cursor cursor)
+        key    (key-in-parent cursor)]
+    (om/transact! parent #(remove-key % key))))
+
+
+
 (defn new-item []
   {:title "New item"
    :completed? false
@@ -34,10 +73,9 @@
   (om/transact! item #(assoc % :title new-title)))
 
 (defn finalize-item! [item]
-  (let [current-title (:title @item)
-        new-title     (if (empty? current-title) "New item" current-title)]
-    (update-item-title! item new-title)
-  (unfocus! item)))
+  (if (empty? (:title @item))
+    (remove-item! item)
+    (unfocus! item)))
 
 
 
