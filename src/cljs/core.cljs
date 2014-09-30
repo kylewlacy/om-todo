@@ -75,7 +75,8 @@
 
 
 (defn list-item [item]
-  [:li {:class [(if (:new? item) "new")]}
+  [:li {:class [(if (:new? item) "new")
+                (if (:completed? item) "complete")]}
     [:input {:type      "checkbox"
              :disabled  (if (:new? item) "disabled" "")
              :checked   (:completed? item)
