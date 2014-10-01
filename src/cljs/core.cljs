@@ -33,7 +33,7 @@
     (and (coll? coll) (not (map? coll)) (number? key))
       (insert-at coll key item)
     :else
-      (assoc coll key)))
+      (assoc coll key item)))
 
 (defn parent-cursor
   "Return the cursor one level up in the path of `child-cursor`"
