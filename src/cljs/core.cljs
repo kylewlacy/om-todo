@@ -72,32 +72,39 @@
   (if (and (empty? (:title @item)) (not (:new? @item)))
     (remove-item! item)))
 
+(defn list-item [item owner]
+  (om/component
+    (html
+      (let [new?       (:new? item)
+            complete?  (:completed? item)
+            title      (:title item)]
+        [:li {:class     [(if new? "new")
+                          (if complete? "complete")]}
+          [:input {:type      "checkbox"
+                   :disabled  (if new? "disabled" "")
+                   :checked   complete?
+                   :on-change #(update-item-completion! item (-> %
+                                                                 .-target
+                                                                 .-checked))
+                   :tab-index -1}]
+          [:input {:type        "text"
+                   :value       title
+                   :on-change   #(update-item-title! item (-> %
+                                                              .-target
+                                                              .-value))
+                   :on-blur     #(finalize-item! item)
+                   :placeholder (if title "New item" "")}]]))))
 
-
-(defn list-item [item]
-  [:li {:class [(if (:new? item) "new")
-                (if (:completed? item) "complete")]}
-    [:input {:type      "checkbox"
-             :disabled  (if (:new? item) "disabled" "")
-             :checked   (:completed? item)
-             :on-change #(update-item-completion! item (-> %
-                                                           .-target
-                                                           .-checked))
-             :tab-index -1}]
-   [:input {:type       "text"
-            :value      (:title item)
-            :on-change  #(update-item-title! item (-> % .-target .-value))
-            :on-blur    #(finalize-item! item)}]])
-
-(defn list-items [items]
-  [:ol#todo-list (map list-item items)])
+(defn list-items [items owner]
+  (om/component
+    (html [:ol#todo-list (om/build-all list-item items)])))
 
 (defn todo-list [app owner]
   (om/component
     (html
       [:section#to-do
         [:h1 "To-Do List"]
-        (list-items (:items app))])))
+        (om/build list-items (:items app))])))
 
 
 
