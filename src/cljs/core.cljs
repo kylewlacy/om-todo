@@ -175,6 +175,13 @@
   (release-item! item))
 
 
+(defn item-keypress-event! [item event]
+  (let [key-code           (.-keyCode event)]
+    (cond
+     (= key-code 13) ; Enter
+       (update-item-completion! item (-> @item :completed? not)))))
+
+
 
 (defn list-item [item owner]
   (om/component
@@ -211,6 +218,7 @@
                                                               .-target
                                                               .-value))
                    :on-blur     #(finalize-item! item)
+                   :on-key-down (partial item-keypress-event! item)
                    :auto-focus  new?
                    :placeholder (if title "New item" "")}]]))))
 
