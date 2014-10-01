@@ -11,6 +11,11 @@
   [coll n]
   (vec (concat (subvec coll 0 n) (subvec coll (inc n)))))
 
+(defn insert-at
+  "Insert `item` at index `n` in `coll`"
+  [coll n item]
+  (vec (concat (subvec coll 0 n) [item] (subvec coll n))))
+
 (defn remove-key
   "Remove `key` from `coll`, where `key` is either a map key or an array index"
   [coll key]
@@ -20,14 +25,32 @@
     :else
       (dissoc coll key)))
 
+(defn insert-key
+  [coll key item]
+  "Insert `item` into `key` of `coll`, where `key` is either a map key or array
+   index"
+  (cond
+    (and (coll? coll) (not (map? coll)) (number? key))
+      (insert-at coll key item)
+    :else
+      (assoc coll key)))
+
 (defn parent-cursor
   "Return the cursor one level up in the path of `child-cursor`"
   [child-cursor]
   (let [new-path (vec (butlast (om/path child-cursor)))
         state    (om/state child-cursor)
-        val      (get-in @state new-path)
-        cursor   (om/-derive child-cursor val state new-path)]
-    cursor))
+        val      (get-in @state new-path)]
+    (om/-derive child-cursor val state new-path)))
+
+(defn child-cursor
+  "Return the cursor within `parent-cursor` with key `child-key`- either a
+   vector index or map key"
+  [parent-cursor child-key]
+  (let [new-path (vec (concat (om/path parent-cursor) [child-key]))
+        state    (om/state parent-cursor)
+        val      (get-in @state new-path)]
+    (om/-derive parent-cursor val state new-path)))
 
 (defn key-in-parent
   "Return the key to get from a parent cursor to `child-cursor`, such that:
@@ -36,11 +59,49 @@
   [child-cursor]
   (last (om/path child-cursor)))
 
-(defn remove-item! [cursor]
+(defn remove-item!
   "Remove `cursor` from its parent"
+  [cursor]
   (let [parent (parent-cursor cursor)
         key    (key-in-parent cursor)]
     (om/transact! parent #(remove-key % key))))
+
+(defn move-item! [cursor new-key]
+  "`assoc` the value of cursor with the key `new-key` in its parent"
+  (let [value       @cursor
+        current-key (key-in-parent cursor)
+        parent      (parent-cursor cursor)]
+    (if (not= new-key current-key)
+      (om/transact! parent #(-> %
+                                (remove-key current-key)
+                                (insert-key new-key value))))))
+
+; http://stackoverflow.com/a/23528539/1311454
+(defn index-of-node
+  "Return the index of `node` in its parent"
+  [node]
+  (let [parent   (.-parentNode node)
+        siblings (.-children parent)]
+    (-> js/Array .-prototype .-indexOf (.call siblings node))))
+
+(defn matches-selector?
+  "Return true if `node` matches `sel`"
+  [node sel]
+  (.matches node sel))
+
+(defn closest-ancestor
+  "Return the earliest ancestor of the DOM `node` which matches `sel`,
+   or return `nil` if none is found"
+  [node sel]
+  (loop [ancestor node]
+    (if (or (nil? ancestor) (matches-selector? ancestor sel))
+      ancestor
+      (recur (.-parentElement ancestor)))))
+
+; http://stackoverflow.com/a/8642069/1311454
+(defn indicies [pred coll]
+  "Return all indicies for which `pred` is true in `coll`"
+  (keep-indexed #(when (pred %2) %1) coll))
 
 
 
