@@ -47,7 +47,8 @@
 (defn new-item []
   {:title      ""
    :completed? false
-   :new?       true})
+   :new?       true
+   :dragging?  false})
 
 (defn mark-as-old [item]
   (assoc item :new? false))
@@ -68,6 +69,9 @@
     (add-item! (parent-cursor item) (new-item)))
   (om/transact! item #(-> % mark-as-old (assoc :title new-title))))
 
+(defn update-dragging-item! [item dragging-now?]
+  (om/transact! item #(assoc % :dragging? dragging-now?)))
+
 (defn finalize-item! [item]
   (if (and (empty? (:title @item)) (not (:new? @item)))
     (remove-item! item)))
@@ -76,10 +80,14 @@
   (om/component
     (html
       (let [new?       (:new? item)
+            draggable? (not new?)
             complete?  (:completed? item)
             title      (:title item)]
         [:li {:class     [(if new? "new")
-                          (if complete? "complete")]}
+                          (if complete? "complete")]
+              :draggable draggable?}
+          [:span {:class ["drag-handle"
+                          (if (not draggable?) "disabled")]}]
           [:input {:type      "checkbox"
                    :disabled  (if new? "disabled" "")
                    :checked   complete?
