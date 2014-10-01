@@ -211,6 +211,7 @@
                                                               .-target
                                                               .-value))
                    :on-blur     #(finalize-item! item)
+                   :auto-focus  new?
                    :placeholder (if title "New item" "")}]]))))
 
 (defn list-items [items owner]
