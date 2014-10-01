@@ -106,10 +106,10 @@
 
 
 (defn new-item []
-  {:title       ""
-   :completed?    false
-   :new?          true
-   :dragging-from nil})
+  {:title      ""
+   :completed? false
+   :new?       true
+   :drag-start nil})
 
 (defn mark-as-old [item]
   (assoc item :new? false))
@@ -130,56 +130,52 @@
     (add-item! (parent-cursor item) (new-item)))
   (om/transact! item #(-> % mark-as-old (assoc :title new-title))))
 
+(defn update-item-drag-start! [item drag-start]
+  (om/transact! item #(assoc % :drag-start drag-start)))
+
 (defn start-dragging-item! [item]
   (let [drag-start (key-in-parent item)]
-    (om/transact! item #(assoc % :dragging-from drag-start))))
+    (update-item-drag-start! item drag-start)))
 
-(defn drag-item-to! [item index]
-  (move-item! item index))
+(defn release-item! [drag-item]
+  (update-item-drag-start! drag-item nil))
 
-(defn stop-dragging-item! [item]
-  (if-let [drag-start (:dragging-from @item)]
-    (move-item! item drag-start))
-  (om/transact! item #(assoc % :dragging-from nil)))
-
-(defn drop-item! [drag-item]
-  (om/transact! item #(assoc % :dragging-from nil)))
+(defn reset-item-dragging! [drag-item]
+  (if-let [drag-start (:drag-start @drag-item)]
+    (move-item! drag-item drag-start))
+  (release-item! drag-item))
 
 (defn dragging-item? [item]
-  (:dragging-from item))
+  (:drag-start item))
 
 (defn finalize-item! [item]
   (if (and (empty? (:title @item)) (not (:new? @item)))
     (remove-item! item)))
 
-(defn drag-item-over-event! [over-item event]
+
+
+(defn item-drag-start-event! [drag-item event]
+  (start-dragging-item! drag-item))
+
+(defn item-drag-over-event! [over-item event]
+  (.preventDefault event)
   (let [swappable?    (d/has-class? (.-target event) "drag-swappable")
         items         (parent-cursor over-item)
         drag-item-key (first (indicies dragging-item? @items))
         drag-item     (child-cursor items drag-item-key)
         over-item-key (key-in-parent over-item)]
-    (.preventDefault event)
     (when swappable?
-      (drag-item-to! drag-item
-                     over-item-key))))
+      (move-item! drag-item over-item-key))))
 
-(defn drag-item-leave-event! [over-item event]
-  (let [items (parent-cursor over-item)
-        drag-item-key (first (indicies dragging-item? @items))
-        drag-item (child-cursor items drag-item-key)
-        original-key (:dragging-from @drag-item)]
-    (move! drag-item original-key)))
+(defn item-drag-end-event! [drag-item event]
+  (reset-item-dragging! drag-item))
 
-(defn drag-item-stop-event! [item event]
-  #_(.preventDefault event)
-  (stop-dragging-item! item))
-
-(defn drop-item-event! [item event]
+(defn item-drop-event! [item event]
   (.preventDefault event)
-  (drop-item! item))
+  (release-item! item))
 
 
-(defn dbg [& args] (apply println args) (last args))
+
 (defn list-item [item owner]
   (om/component
     (html
@@ -196,10 +192,10 @@
                           (if dropzone? "dropzone")
                           (if drag-swappable? "drag-swappable")]
               :draggable draggable?
-              :on-drag-start #(start-dragging-item! item)
-              :on-drag-over  (partial drag-item-over-event! item)
-              :on-drag-end   (partial drag-item-stop-event! item)
-              :on-drop       (partial drop-item-event! item)}
+              :on-drag-start (partial item-drag-start-event! item)
+              :on-drag-over  (partial item-drag-over-event! item)
+              :on-drag-end   (partial item-drag-end-event! item)
+              :on-drop       (partial item-drop-event! item)}
           [:span {:class ["drag-handle"
                           (if (not draggable?) "disabled")]}]
           [:input {:type      "checkbox"
